@@ -63,6 +63,10 @@ class SAFT:
             self.get_error(self.nif)
 
     def get_nif(self):
+        """
+        Search in xml file for the nif of the company
+        :return: nif of the company file
+        """
         try:
             root = ET.parse(self.path).getroot()
         except Exception as error:
@@ -74,6 +78,10 @@ class SAFT:
             return nif
 
     def query_db(self):
+        """
+        Query Data Base for password and company id
+        :return: Tuple of client_id and password
+        """
         conn = psycopg2.connect(host='localhost', database='senhas', user='postgres', password=DB_PASS)
         cur = conn.cursor()
         cur.execute(
@@ -87,34 +95,68 @@ class SAFT:
         return cur.fetchone()
 
     def send_saft(self):
+        """
+        First Validates SAFT and checks error them send them
+        :return:
+        """
         language, file_reader, nif, password, year, month, operation, \
             input_param, output_param = "java", "-jar", "-n", "-p", "-a", "-m", "-op", "-i", "-o"
 
-        # TODO 1. Ver com faço o flow, 1º validar, caso haja erro escrever o erro para um pasta de erros, 2º enviar caso esteja tudo bem
-        # 40432 tem erro e 10195 tem erro por estar sem faturação
         type_operation = "validar"  # "enviar"
-        test = "-t"
+
+        # Development Mode
+        test = '-t' if development_mode else ''
+
         output_path = os.path.join(OUTPUT_SAFT, f'{self.company_id} - SAFT {self.month}-{self.year}')
 
-        proc1 = subprocess.run(
-            [language, file_reader, JAR_FILE, nif, str(self.nif), password, str(self.password), year, self.year,
-             month, self.month, operation, type_operation, input_param,
-             self.path, output_param, output_path, test], capture_output=True)
+        for _ in range(2):
+            # First Validate Second Send
+            line_commands = [language, file_reader, JAR_FILE, nif, str(self.nif), password,
+                             str(self.password), year, self.year, month, self.month,
+                             operation, type_operation, input_param, self.path, test]
 
-        if proc1.stderr:
-            print(f'Error in {self.company_id}:\n{self.path}:\n', proc1.stderr.decode("ISO-8859-1"))
+            # OFF Development Mode
+            if test == '':
+                line_commands.pop()
+
+            # In validation don't create output file
+            if type_operation == 'enviar':
+                line_commands = line_commands + [output_param, output_path]
+
+            proc1 = subprocess.run(line_commands, capture_output=True)
+
+            # Check Error & Warnings
+            if type_operation == 'validar':
+                stdout = proc1.stdout.decode('ISO-8859-1')
+                if stdout.find('<errors>') != -1:
+                    response_code = stdout[stdout.find('<response code='):stdout.find('</response>') + 11]
+                    self.get_error(response_code, self.company_id)
+                    return
+
+            type_operation = 'enviar'
 
     def __repr__(self):
         return f'{self.company_id} - {self.nif} & {self.password}'
 
-    def get_error(self, error):
+    def get_error(self, error, client=None):
+        """
+        If error exists it ill write a txt file with the error in error directory
+        :param error:
+        :param client:
+        """
         self.error = True
-        with open(f'error_saft/{self.name_file} - Error.txt', 'w') as f:
+        client = str(client) + " " if client else ""
+        with open(f'error_saft/{client}{self.name_file} - Error.txt', 'w') as f:
             string = f'O SAFT situado em: {self.path}\nTeve o seguinte erro:\n{error}'
             f.write(string)
 
+        print(f'{client}Error on saft {company_saft.name_file} check error file')
+
 
 if __name__ == '__main__':
+    # DEVELOPING MODE
+    development_mode = True
+
     # Get corresponding date
     corresponding_date = month_in_reference()
 
@@ -124,11 +166,9 @@ if __name__ == '__main__':
     for saft in saft_files_list:
         # Instantiate company SAFT
         company_saft = SAFT(saft, corresponding_date)
+        # Send Saft
+        company_saft.send_saft()
 
-        # If no error parsing xml
+        # If no error
         if not company_saft.error:
-            # Send Saft
-            company_saft.send_saft()
             print(f'Sent saft of {company_saft.company_id}')
-        else:
-            print(f'Error on saft {company_saft.name_file} check error file')
