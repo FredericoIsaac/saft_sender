@@ -92,7 +92,9 @@ class SAFT:
             'WHERE c.nif = (%s)',
             (self.nif,)
         )
-        return cur.fetchone()
+        result = cur.fetchone()
+        conn.close()
+        return result
 
     def send_saft(self):
         """
@@ -107,7 +109,17 @@ class SAFT:
         # Development Mode
         test = '-t' if development_mode else ''
 
-        output_path = os.path.join(OUTPUT_SAFT, f'{self.company_id} - SAFT {self.month}-{self.year}')
+        # Handle multiple outputs of the same company
+        list_output_dir = os.listdir(OUTPUT_SAFT)
+        string_output = ' '.join(list_output_dir)
+
+        already_there = string_output.count(str(self.company_id))
+
+        output_path = os.path.join(
+            OUTPUT_SAFT,
+            f'{self.company_id} - SAFT{"" if already_there == 0 else " Loja " + str(already_there + 1)}'
+            f' {self.month}-{self.year}'
+        )
 
         for _ in range(2):
             # First Validate Second Send
