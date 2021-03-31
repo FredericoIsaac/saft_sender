@@ -8,6 +8,7 @@ from prettytable import PrettyTable
 # --------------------------------------- DIRECTORY VARIABLES --------------------------------------- #
 INPUT_SAFT = r'C:\Users\Frederico\Desktop\Frederico_Gago\Confere\Programas\saft_sender\input_saft'
 OUTPUT_SAFT = r'C:\Users\Frederico\Desktop\Frederico_Gago\Confere\Programas\saft_sender\output_saft'
+OUTPUT_XML = r'C:\Users\Frederico\Desktop\Frederico_Gago\Confere\Programas\saft_sender\output_xml'
 JAR_FILE = r'C:\Users\Frederico\Desktop\Frederico_Gago\Confere\Programas\saft_sender' \
            r'\jar_file\FACTEMICLI-2.5.16-9655-cmdClient.jar'
 
@@ -114,12 +115,11 @@ class SAFT:
         # Development Mode
         test = '-t' if development_mode else ''
 
+
         # Handle multiple outputs of the same company
         list_output_dir = os.listdir(OUTPUT_SAFT)
         string_output = ' '.join(list_output_dir)
-
         already_there = string_output.count(str(self.company_id))
-
         output_path = os.path.join(
             OUTPUT_SAFT,
             f'{self.company_id} - SAFT{"" if already_there == 0 else " Loja " + str(already_there + 1)}'
@@ -155,6 +155,42 @@ class SAFT:
                 print(f'No errors found.\nSending SAFT...')
 
             type_operation = 'enviar'
+
+        # Move xml files
+        self.move_xml_files()
+
+    def move_xml_files(self):
+        """
+        Move original xml file and resume file to a directory that has the name of the client
+        :return:
+        """
+        final_file_destination = self.get_directory()
+        # Move XML files that here sent to new directory
+        # Move Original file
+        original_file_to = os.path.join(final_file_destination, self.name_file)
+        os.rename(self.path, original_file_to)
+
+        # Move Resume file
+        resume_file = f'{self.name_file[:-4]}.resumido.xml'
+        resume_file_path = os.path.join(INPUT_SAFT, resume_file)
+        resume_file_to = os.path.join(final_file_destination, resume_file)
+        os.rename(resume_file_path, resume_file_to)
+
+    def get_directory(self):
+        """
+
+        :return: The path of the directory to move the xml files
+        """
+        dir_list = os.listdir(OUTPUT_XML)
+        directory_name = f'{self.company_id} - SAFT {self.month}-{self.year}'
+
+        create_dir = os.path.join(OUTPUT_XML, directory_name)
+
+        if directory_name in dir_list:
+            return create_dir
+        else:
+            os.mkdir(create_dir)
+            return create_dir
 
     def __repr__(self):
         return f'{self.company_id} - {self.nif} & {self.password}'
@@ -212,7 +248,7 @@ if __name__ == '__main__':
     print(result_string)
 
     # Saving in a file
-    with open('./log_saft_sender.txt', 'a') as f:
+    with open(f'./{corresponding_date} - log_saft_sender.txt', 'a') as f:
         f.write('-' * 60 + str(datetime.datetime.now()) + '-' * 60 + '\n')
         f.write(result_string + '\n\n')
 
