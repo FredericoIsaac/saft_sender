@@ -3,6 +3,7 @@ import datetime
 import subprocess
 import xml.etree.ElementTree as ET
 import psycopg2
+from prettytable import PrettyTable
 
 # --------------------------------------- DIRECTORY VARIABLES --------------------------------------- #
 INPUT_SAFT = r'C:\Users\Frederico\Desktop\Frederico_Gago\Confere\Programas\saft_sender\input_saft'
@@ -12,6 +13,8 @@ JAR_FILE = r'C:\Users\Frederico\Desktop\Frederico_Gago\Confere\Programas\saft_se
 
 # --------------------------------------- CONSTANT VARIABLES --------------------------------------- #
 DB_PASS = os.environ['DB_PASS']
+ERROR_LIST = []
+SENT_LIST = []
 
 
 # --------------------------------------- CORRESPONDING DATE --------------------------------------- #
@@ -51,9 +54,11 @@ class SAFT:
         self.name_file = os.path.basename(path_file)
         self.month = date.split('-')[0].strip()
         self.year = date.split('-')[1].strip()
+
         self.error = False
 
         self.nif = self.get_nif()
+
         # If no error parsing xml to get nif
         if self.nif.isnumeric():
             query = self.query_db()
@@ -82,7 +87,7 @@ class SAFT:
         Query Data Base for password and company id
         :return: Tuple of client_id and password
         """
-        conn = psycopg2.connect(host='localhost', database='senhas', user='postgres', password=DB_PASS)
+        conn = psycopg2.connect(host='localhost', database='confere', user='postgres', password=DB_PASS)
         cur = conn.cursor()
         cur.execute(
             'SELECT c.client_id, f.password '
@@ -98,13 +103,13 @@ class SAFT:
 
     def send_saft(self):
         """
-        First Validates SAFT and checks error them send them
+        First Validates SAFT and checks error then send them
         :return:
         """
         language, file_reader, nif, password, year, month, operation, \
             input_param, output_param = "java", "-jar", "-n", "-p", "-a", "-m", "-op", "-i", "-o"
 
-        type_operation = "validar"  # "enviar"
+        type_operation = "validar"
 
         # Development Mode
         test = '-t' if development_mode else ''
@@ -121,8 +126,8 @@ class SAFT:
             f' {self.month}-{self.year}'
         )
 
+        # First Validate Second Send
         for _ in range(2):
-            # First Validate Second Send
             line_commands = [language, file_reader, JAR_FILE, nif, str(self.nif), password,
                              str(self.password), year, self.year, month, self.month,
                              operation, type_operation, input_param, self.path, test]
@@ -139,11 +144,15 @@ class SAFT:
 
             # Check Error & Warnings
             if type_operation == 'validar':
+                print(f'Validating SAFT: {self.company_id} - {self.path}')
+
                 stdout = proc1.stdout.decode('ISO-8859-1')
                 if stdout.find('<errors>') != -1:
                     response_code = stdout[stdout.find('<response code='):stdout.find('</response>') + 11]
                     self.get_error(response_code, self.company_id)
                     return
+
+                print(f'No errors found.\nSending SAFT...')
 
             type_operation = 'enviar'
 
@@ -163,6 +172,7 @@ class SAFT:
             f.write(string)
 
         print(f'{client}Error on saft {company_saft.name_file} check error file')
+        ERROR_LIST.append([client, company_saft.name_file])
 
 
 if __name__ == '__main__':
@@ -176,11 +186,33 @@ if __name__ == '__main__':
     saft_files_list = search_xml_files(INPUT_SAFT)
 
     for saft in saft_files_list:
+        print(f'Handling saft: {saft}')
         # Instantiate company SAFT
         company_saft = SAFT(saft, corresponding_date)
         # Send Saft
         company_saft.send_saft()
 
+        print('-'*200)
+
         # If no error
         if not company_saft.error:
-            print(f'Sent saft of {company_saft.company_id}')
+            SENT_LIST.append([company_saft.company_id, company_saft.name_file])
+
+    # Printing Result of the program in a Pretty Table
+    show_results = PrettyTable(['id', 'Ficheiro', 'Status'])
+    show_results.align = 'l'
+
+    for error in ERROR_LIST:
+        show_results.add_row([int(error[0]), error[1], 'Error'])
+
+    for sent in SENT_LIST:
+        show_results.add_row([int(sent[0]), sent[1], 'Sent'])
+
+    result_string = show_results.get_string(sortby='id')
+    print(result_string)
+
+    # Saving in a file
+    with open('./log_saft_sender.txt', 'a') as f:
+        f.write('-' * 60 + str(datetime.datetime.now()) + '-' * 60 + '\n')
+        f.write(result_string + '\n\n')
+

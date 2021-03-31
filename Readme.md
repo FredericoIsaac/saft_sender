@@ -14,5 +14,6 @@ Move o ficheiro original de SAFT, guardado no input, para a pasta nova criada de
 PSYCOPG2 Module:
 
         pip install psycopg2
+        pip install prettytable
 
 

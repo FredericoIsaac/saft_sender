@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="9897f2d7-d0cf-4c5a-83d3-7c35014a3321" name="Default Changelist" comment="Add error control">
+    <list default="true" id="9897f2d7-d0cf-4c5a-83d3-7c35014a3321" name="Default Changelist" comment="add validation if the output file has already a file with the same name">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/Readme.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/saft_sender.py" beforeDir="false" afterPath="$PROJECT_DIR$/saft_sender.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -22,7 +23,7 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../mail_project" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -88,7 +89,14 @@
       <option name="project" value="LOCAL" />
       <updated>1617033995319</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="add validation if the output file has already a file with the same name">
+      <created>1617115634846</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1617115634846</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -106,6 +114,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Refactor last project to manage more easily" />
     <MESSAGE value="Add error control" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add error control" />
+    <MESSAGE value="add validation if the output file has already a file with the same name" />
+    <option name="LAST_COMMIT_MESSAGE" value="add validation if the output file has already a file with the same name" />
   </component>
 </project>
